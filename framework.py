@@ -26,6 +26,7 @@ class Framework():
             pass
 
         self.agent = Agent(self.window, len(self.tickers))
+        self.optimizer = tf.keras.optimizers.Adam(1e-4)
         self.env = Environment(
             tickers = self.tickers,
             c_s = self.c_s,
@@ -42,12 +43,15 @@ class Framework():
         delta = tf.range(-self.window, self.horizon)[tf.newaxis, :]
         delta = tf.tile(delta, [idx.shape[0], 1])
         X = tf.gather(data, idx + delta)
-        features, prices = tf.split(X, num_or_size_splits = [self.window, self.horizon], axis = 1)
-        prices = tf.concat([tf.gather(features, [self.window-1], axis = 1), prices], axis = 1)
+        left, right = tf.split(X, num_or_size_splits = [self.window, self.horizon], axis = 1)
+        prices = tf.concat([tf.gather(left, [self.window-1], axis = 1), right], axis = 1)
+        
+        idx = tf.range(self.horizon)
+        idx = (idx[:, tf.newaxis] + idx[tf.newaxis, :])[:, :self.window]
+        features = tf.gather(X, idx, axis = 1)
 
         features = tf.cast(features, 'float32')
         prices = tf.cast(prices, 'float32')
-
 
         return tf.data.Dataset.from_tensor_slices((features, prices)), len(features)
 
@@ -57,8 +61,12 @@ class Framework():
         initial_weights = tf.one_hot(initial_weights, depth = len(self.tickers) + 1)
 
         with tf.GradientTape() as tape:
-            reward = self.env.run_episode(self.agent, features, prices, initial_weights)
+            reward = self.env.run_episode(self.agent, features, prices, initial_weights, training = True)
             batch_loss = - tf.reduce_mean(reward)
+            variables = self.agent.actor.trainable_variables
+            gradient = tape.gradient(batch_loss, variables)
+            self.optimizer.apply_gradients(zip(gradient, variables))
+            
         return batch_loss
     
     def fit(self, batch_size = 32, epochs = 1):
@@ -69,7 +77,6 @@ class Framework():
         for epoch in range(epochs):
             progbar = tf.keras.utils.Progbar(buffer_size)
             for features, prices in ds:
-                pass
                 prices, _, _ = tf.split(prices, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
                 loss = self.train_step(features, prices)
                 values = [('Loss', loss)]
@@ -81,6 +88,5 @@ class Framework():
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-self = Framework(config)
-batch_size = 32
-epochs = 1
+framework = Framework(config)
+framework.fit(batch_size = 32, epochs = 10)
