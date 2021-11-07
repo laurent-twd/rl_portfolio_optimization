@@ -1,1 +1,1 @@
-{"tickers": ["MSFT", "AAPL"], "period": ["01/01/2017", "01/01/2021"], "interval": "1d", "c_s": 0.2, "c_p": 0.25, "horizon": 60, "window": 30, "fitted": false}
+{"tickers": ["MSFT", "AAPL"], "period": ["01/01/2010", "01/01/2021"], "interval": "1d", "c_s": 0.0025, "c_p": 0.0025, "horizon": 60, "window": 30, "fitted": false}

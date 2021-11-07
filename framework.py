@@ -5,6 +5,7 @@ import numpy as np
 from environment import Environment
 from agent import Agent
 from data_utils import get_financials_from_ticker, yfinance_get_data
+from sklearn.model_selection import train_test_split
 
 class Framework():
 
@@ -49,11 +50,12 @@ class Framework():
         idx = tf.range(self.horizon)
         idx = (idx[:, tf.newaxis] + idx[tf.newaxis, :])[:, :self.window]
         features = tf.gather(X, idx, axis = 1)
+        features = features / tf.expand_dims(features[:, :, -1, :], -2)
 
         features = tf.cast(features, 'float32')
         prices = tf.cast(prices, 'float32')
 
-        return tf.data.Dataset.from_tensor_slices((features, prices)), len(features)
+        return features, prices, len(features)
 
     @tf.function
     def train_step(self, features, prices):
@@ -71,22 +73,27 @@ class Framework():
     
     def fit(self, batch_size = 32, epochs = 1):
 
-        ds, buffer_size = self.get_engineered_features()
-        ds = ds.shuffle(buffer_size)
-        ds = ds.batch(batch_size)
+        features, prices, buffer_size = self.get_engineered_features()
+        limit = int(.75 * buffer_size)
+        ds_train = tf.data.Dataset.from_tensor_slices((features[:limit], prices[:limit]))
+        ds_train = ds_train.shuffle(buffer_size)
+        ds_train = ds_train.batch(batch_size)
         for epoch in range(epochs):
-            progbar = tf.keras.utils.Progbar(buffer_size)
-            for features, prices in ds:
-                prices, _, _ = tf.split(prices, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
-                loss = self.train_step(features, prices)
+            progbar = tf.keras.utils.Progbar(limit)
+            for f, p in ds_train:
+                p, _, _ = tf.split(p, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
+                loss = self.train_step(f, p)
                 values = [('Loss', loss)]
-                progbar.add(prices.shape[0], values = values)
+                progbar.add(p.shape[0], values = values)
+            
+        p, _, _ = tf.split(prices, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
+
+        initial_weights = tf.zeros(features.shape[0] - limit, dtype = 'int32')
+        initial_weights = tf.one_hot(initial_weights, depth = len(self.tickers) + 1)
+        reward = self.env.run_episode(self.agent, features[limit:], p[limit:], initial_weights, training = False)
+
+        return tf.math.exp(reward), p[limit:]
 
     def save_model():
         pass
 
-with open('config.json', 'r') as f:
-    config = json.load(f)
-
-framework = Framework(config)
-framework.fit(batch_size = 32, epochs = 10)

@@ -59,12 +59,15 @@ class Environment():
             closing_weights = y_t * weights / tf.reduce_sum(y_t * weights, axis = -1)[:, tf.newaxis]
             target_weights = agent.get_weights(features[:, t, :, :], weights, training)
             mu_t = self.get_transaction_factor(closing_weights, target_weights, self.delta)
-            return_t = tf.math.log(mu_t * tf.reduce_sum(weights * y_t, axis = -1))
+            return_t = tf.math.log(tf.stop_gradient(mu_t) * tf.reduce_sum(weights * y_t, axis = -1))
             reward.append(tf.expand_dims(return_t, axis = -1))
             weights = target_weights
         
         reward = tf.concat(reward, axis = -1)
-        return tf.reduce_sum(reward, axis = -1)
+        if training:
+            return tf.reduce_sum(reward, axis = -1)
+        else:
+            return reward
 
     def test_run_episode(self):
         
