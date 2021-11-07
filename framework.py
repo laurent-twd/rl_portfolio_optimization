@@ -34,9 +34,8 @@ class Framework():
             c_p = self.c_p
         )
 
-    def get_engineered_features(self):
+    def get_engineered_features(self, data):
 
-        data = yfinance_get_data(self.tickers, self.period)
         data = tf.constant(data.values)
 
         idx = tf.range(self.window, data.shape[0]-self.horizon)[:, tf.newaxis]
@@ -71,28 +70,33 @@ class Framework():
             
         return batch_loss
     
-    def fit(self, batch_size = 32, epochs = 1):
+    def fit(self, data, batch_size = 32, epochs = 1):
 
-        features, prices, buffer_size = self.get_engineered_features()
-        limit = int(.75 * buffer_size)
-        ds_train = tf.data.Dataset.from_tensor_slices((features[:limit], prices[:limit]))
+        print("Loading market data...")
+        features, prices, buffer_size = self.get_engineered_features(data)
+        ds_train = tf.data.Dataset.from_tensor_slices((features, prices))
         ds_train = ds_train.shuffle(buffer_size)
         ds_train = ds_train.batch(batch_size)
+
+        print("Training...")
         for epoch in range(epochs):
-            progbar = tf.keras.utils.Progbar(limit)
+            progbar = tf.keras.utils.Progbar(buffer_size)
             for f, p in ds_train:
                 p, _, _ = tf.split(p, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
                 loss = self.train_step(f, p)
                 values = [('Loss', loss)]
                 progbar.add(p.shape[0], values = values)
-            
-        p, _, _ = tf.split(prices, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
+        
+    def predict(self, data):
 
-        initial_weights = tf.zeros(features.shape[0] - limit, dtype = 'int32')
+        features, prices, buffer_size = self.get_engineered_features(data)
+        prices, _, _ = tf.split(prices, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
+
+        initial_weights = tf.zeros(features.shape[0], dtype = 'int32')
         initial_weights = tf.one_hot(initial_weights, depth = len(self.tickers) + 1)
-        reward = self.env.run_episode(self.agent, features[limit:], p[limit:], initial_weights, training = False)
+        reward, weights = self.env.run_episode(self.agent, features, prices, initial_weights, training = False)
 
-        return tf.math.exp(reward), p[limit:]
+        return tf.math.exp(reward), p, weights
 
     def save_model():
         pass

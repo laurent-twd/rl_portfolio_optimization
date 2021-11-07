@@ -52,6 +52,7 @@ class Environment():
 
         T = features.shape[1]
         weights = initial_weights
+        all_weights = [tf.expand_dims(weights, axis = 1)]
         reward = []
         for t in range(T):
             y_t = self.get_price_relative_vector(prices[:, t, :], prices[:, t+1, :])
@@ -62,12 +63,14 @@ class Environment():
             return_t = tf.math.log(tf.stop_gradient(mu_t) * tf.reduce_sum(weights * y_t, axis = -1))
             reward.append(tf.expand_dims(return_t, axis = -1))
             weights = target_weights
+            all_weights.append(tf.expand_dims(weights, axis = 1))
         
         reward = tf.concat(reward, axis = -1)
         if training:
             return tf.reduce_sum(reward, axis = -1)
         else:
-            return reward
+            all_weights = tf.concat(all_weights, axis = 1)
+            return reward, all_weights
 
     def test_run_episode(self):
         

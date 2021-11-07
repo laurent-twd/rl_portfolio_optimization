@@ -1,1 +1,1 @@
-{"tickers": ["MSFT", "AAPL"], "period": ["01/01/2010", "01/01/2021"], "interval": "1d", "c_s": 0.0025, "c_p": 0.0025, "horizon": 60, "window": 30, "fitted": false}
+{"tickers": ["AAPL", "AMZN", "BA", "BAC", "BP", "CAT", "CSCO", "CVX", "ENB", "GE", "GILD", "HD", "HON", "IBM", "INTC", "JNJ", "JPM", "KO", "MFC", "MMM", "MRK", "MSFT", "ORCL", "PFE", "TD", "VZ", "WMT"], "period": ["01/01/2010", "01/01/2021"], "interval": "1d", "c_s": 0.0025, "c_p": 0.0025, "horizon": 60, "window": 30, "fitted": false}

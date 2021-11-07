@@ -13,19 +13,19 @@ class Agent():
         input_weights = tf.keras.Input((self.n_assets, 1))
 
         x = tf.keras.layers.Conv1D(
-            filters = 32 * self.n_assets,
+            filters = 8 * self.n_assets,
             kernel_size = 3,
             strides = 1,
             padding = 'valid',
             activation = 'relu')(input_features)
         x = tf.keras.layers.Conv1D(
-            filters = 32 * self.n_assets,
+            filters = 8 * self.n_assets,
             kernel_size = 28,
             strides = 1,
             padding = 'valid',
             activation = 'relu')(x)
 
-        x = tf.keras.layers.Reshape(target_shape = (self.n_assets, 32))(x)
+        x = tf.keras.layers.Reshape(target_shape = (self.n_assets, 8))(x)
         x = tf.keras.layers.Concatenate(axis = -1)([x, input_weights])
         x = tf.keras.layers.Dense(1)(x)
         bias = tf.keras.layers.Embedding(1,1)(tf.zeros_like(input_weights))[:, 0, :, :]
