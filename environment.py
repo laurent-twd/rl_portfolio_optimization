@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow_probability import distributions as tfd
 from agent import Agent
 
+
 class Environment():
 
     def __init__(self, tickers, c_s, c_p, delta = 1e-3):
@@ -54,8 +55,10 @@ class Environment():
         reward = []
         for t in range(T):
             y_t = self.get_price_relative_vector(prices[:, t, :], prices[:, t+1, :])
+            y_t = tf.concat([tf.ones((features.shape[0], 1)), y_t], axis = -1)
             closing_weights = y_t * weights / tf.reduce_sum(y_t * weights, axis = -1)[:, tf.newaxis]
-            target_weights = agent.get_weights(features[:, t, :], weights)
+            cash_bias = None
+            target_weights = agent.get_weights(features[:, t, :], weights, cash_bias)
             mu_t = self.get_transaction_factor(closing_weights, target_weights, self.delta)
             return_t = tf.math.log(mu_t * tf.reduce_sum(weights * y_t, axis = -1))
             reward.append(tf.expand_dims(return_t, axis = -1))
