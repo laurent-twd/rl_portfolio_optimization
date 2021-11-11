@@ -32,7 +32,6 @@ class Environment():
         mu_1 = func(mu_0)
 
         k = 0
-        delta = 0.01
         while tf.reduce_any(tf.math.abs(mu_0 - mu_1) > delta) and k < 20:
             mu_0 = mu_1
             mu_1 = func(mu_1)
@@ -50,7 +49,7 @@ class Environment():
 
     def run_episode(self, agent, features, prices, initial_weights, training):
 
-        T = features.shape[1]
+        T = prices.shape[1] - 1
         weights = initial_weights
         all_weights = [tf.expand_dims(weights, axis = 1)]
         reward = []
@@ -58,16 +57,19 @@ class Environment():
             y_t = self.get_price_relative_vector(prices[:, t, :], prices[:, t+1, :])
             y_t = tf.concat([tf.ones((features.shape[0], 1)), y_t], axis = -1)
             closing_weights = y_t * weights / tf.reduce_sum(y_t * weights, axis = -1)[:, tf.newaxis]
-            target_weights = agent.get_weights(features[:, t, :, :], weights, training)
+            input_weights = weights
+            for i in range(len(agent.actor.inputs[-1].shape) - 2):
+                input_weights = tf.expand_dims(input_weights, axis = -1)
+            target_weights = agent.get_weights(features[:, :, t, :, :], input_weights, training)         
             mu_t = self.get_transaction_factor(closing_weights, target_weights, self.delta)
-            return_t = tf.math.log(tf.stop_gradient(mu_t) * tf.reduce_sum(weights * y_t, axis = -1))
+            return_t = tf.math.log(mu_t * tf.reduce_sum(weights * y_t, axis = -1))
             reward.append(tf.expand_dims(return_t, axis = -1))
             weights = target_weights
             all_weights.append(tf.expand_dims(weights, axis = 1))
         
         reward = tf.concat(reward, axis = -1)
         if training:
-            return tf.reduce_sum(reward, axis = -1)
+            return reward
         else:
             all_weights = tf.concat(all_weights, axis = 1)
             return reward, all_weights

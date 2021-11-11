@@ -25,10 +25,10 @@ def yfinance_get_data(tickers, period):
         except:
             data = df
 
-    close_columns = [c for c in data.columns if 'close' in c.lower()]
-    low_columns = [c for c in data.columns if 'low' in c.lower()]
-    high_columns = [c for c in data.columns if 'high' in c.lower()]
+    #close_columns = [c for c in data.columns if 'close' in c.lower()]
+    #low_columns = [c for c in data.columns if 'low' in c.lower()]
+    #high_columns = [c for c in data.columns if 'high' in c.lower()]
 
-    data = data[close_columns + low_columns + high_columns]
+    data = data[data.columns[1:]]
 
     return data
