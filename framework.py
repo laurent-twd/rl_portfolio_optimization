@@ -101,7 +101,8 @@ class Framework():
     def predict(self, data):
 
         features, prices, buffer_size = self.get_engineered_features(data)
-        prices, _, _ = tf.split(prices, num_or_size_splits = [len(self.tickers) for i in range(3)], axis = -1)
+        idx_targets = [int(prices.shape[-1] / self.n_assets)*i for i in range(self.n_assets)]
+        prices = tf.gather(prices, idx_targets, axis = -1)
 
         initial_weights = tf.zeros(features.shape[0], dtype = 'int32')
         initial_weights = tf.one_hot(initial_weights, depth = len(self.tickers) + 1)

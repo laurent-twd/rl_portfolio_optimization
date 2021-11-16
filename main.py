@@ -19,8 +19,8 @@ validation_data = data.iloc[limit:]
 
 
 trader = Framework(config, 3e-5)
-batch_size = 32
-epochs = int(1e6 / (2000 / 32))
+batch_size = 1
+epochs = 10 # int(1e6 / (2000 / 32))
 trader.fit(data = training_data, batch_size = batch_size, epochs = epochs)
 
 reward, prices, weights = trader.predict(validation_data)
