@@ -52,7 +52,14 @@ class Framework():
         idx = (idx[:, tf.newaxis] + idx[tf.newaxis, :])[:, :self.window]
         features = tf.gather(X, idx, axis = 1)
         shape = features.shape
-        features = features / tf.expand_dims(features[:, :, -1, :], -2)
+
+        idx_targets = [int(prices.shape[-1] / self.n_assets)*i-1 for i in range(1, self.n_assets + 1)]
+        
+        normalization_constant = tf.gather(features[:, :, -1, :], idx_targets, axis = -1)
+        normalization_constant = tf.expand_dims(normalization_constant, axis = 2)
+        normalization_constant = tf.repeat(normalization_constant, 3, axis = -1)
+
+        features = features / normalization_constant 
         features = tf.reshape(features, shape = [shape[0], self.n_assets, shape[1], shape[2], int(shape[-1] / self.n_assets)])
 
         features = tf.cast(features, 'float32')
@@ -89,7 +96,7 @@ class Framework():
         ds_train = ds_train.batch(batch_size)
 
         print("Training...")
-        idx_targets = [int(prices.shape[-1] / self.n_assets)*i for i in range(self.n_assets)]
+        idx_targets = [int(prices.shape[-1] / self.n_assets)*i-1 for i in range(1, self.n_assets + 1)]
         progbar = tf.keras.utils.Progbar(epochs)
         for epoch in range(epochs):
             for features, prices in ds_train:
@@ -101,7 +108,7 @@ class Framework():
     def predict(self, data):
 
         features, prices, buffer_size = self.get_engineered_features(data)
-        idx_targets = [int(prices.shape[-1] / self.n_assets)*i for i in range(self.n_assets)]
+        idx_targets = [int(prices.shape[-1] / self.n_assets)*i-1 for i in range(1, self.n_assets + 1)]
         prices = tf.gather(prices, idx_targets, axis = -1)
 
         initial_weights = tf.zeros(features.shape[0], dtype = 'int32')
