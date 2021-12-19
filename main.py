@@ -5,7 +5,6 @@ from data_utils import yfinance_get_data
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 import pandas as pd
 
 with open('config.json', 'r') as f:

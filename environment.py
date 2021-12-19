@@ -17,25 +17,30 @@ class Environment():
         return tf.math.divide_no_nan(v1 , v0)
     
     def get_transaction_factor(self, closing_weights, target_weights, delta):
-
-        def func(mu):
-            x = tf.expand_dims(mu, axis = -1)
-            x =  closing_weights[:, 1:] - x * target_weights[:, 1:]
-            x = tf.nn.relu(x)
-            x = (self.c_s + self.c_p - self.c_s * self.c_p) * tf.reduce_sum(x, axis = -1)
-            x = 1. - self.c_p * closing_weights[:, 0] - x
-            x = 1. / (1. - self.c_p * target_weights[:, 0]) * x
-            return x
         
-        mu_0 = tf.math.abs(closing_weights[:, 1:] - target_weights[:, 1:])
-        mu_0 = self.c * tf.reduce_sum(mu_0, axis = -1)
-        mu_1 = func(mu_0)
+        if self.c_p == self.c_s:
+            mu_1 = tf.math.abs(closing_weights[:, 1:] - target_weights[:, 1:])
+            mu_1 = self.c * tf.reduce_sum(mu_1, axis = -1)
+        
+        else:
+            def func(mu):
+                x = tf.expand_dims(mu, axis = -1)
+                x =  closing_weights[:, 1:] - x * target_weights[:, 1:]
+                x = tf.nn.relu(x)
+                x = (self.c_s + self.c_p - self.c_s * self.c_p) * tf.reduce_sum(x, axis = -1)
+                x = 1. - self.c_p * closing_weights[:, 0] - x
+                x = 1. / (1. - self.c_p * target_weights[:, 0]) * x
+                return x
+            
+            mu_0 = tf.math.abs(closing_weights[:, 1:] - target_weights[:, 1:])
+            mu_0 = self.c * tf.reduce_sum(mu_0, axis = -1)
+            mu_1 = func(mu_0)
 
-        k = 0
-        while tf.reduce_any(tf.math.abs(mu_0 - mu_1) > delta) and k < 20:
-            mu_0 = mu_1
-            mu_1 = func(mu_1)
-            k+=1
+            k = 0
+            while tf.reduce_any(tf.math.abs(mu_0 - mu_1) > delta) and k < 20:
+                mu_0 = mu_1
+                mu_1 = func(mu_1)
+                k+=1
         
         return mu_1
     
