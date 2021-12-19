@@ -67,7 +67,6 @@ class Framework():
 
         return features, prices, len(features)
 
-    @tf.function
     def train_step(self, features, prices):
         initial_weights = tf.zeros(features.shape[0], dtype = 'int32')
         initial_weights = tf.one_hot(initial_weights, depth = len(self.tickers) + 1)
